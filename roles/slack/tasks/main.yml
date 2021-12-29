@@ -1,0 +1,58 @@
+---
+# tasks file for slack
+#
+- name: install dependencies
+  apt: name={{ item }} state=present
+  with_items:
+    - curl
+
+- name: get slack package
+  command:
+    argv:
+      - curl
+      - -o
+      - /tmp/slack.deb
+      - https://downloads.slack-edge.com/releases/linux/4.23.0/prod/x64/slack-desktop-4.23.0-amd64.deb
+
+- name: decompress slack package
+  command:
+    argv:
+      - dpkg-deb
+      - -R
+      - /tmp/slack.deb
+      - /tmp/slack-deb
+
+- name: fix slack package dependencies for debian 11
+  command:
+    argv:
+      - sed
+      - -i
+      - 's/libappindicator3-1/libayatana-appindicator1/g'
+      - /tmp/slack-deb/DEBIAN/control
+
+- name: package slack
+  command:
+    argv:
+      - dpkg-deb
+      - -b
+      - /tmp/slack-deb
+      - /tmp/slack-fixed.deb
+
+- name: install slack
+  command:
+    chdir: /tmp
+    argv:
+      - apt
+      - install
+      - -y
+      - /tmp/slack-fixed.deb
+
+- name: clean slack packages
+  command:
+    argv:
+      - rm
+      - -rf
+      - /tmp/slack-deb
+      - /tmp/slack.deb
+      - /tmp/slack-fixed.deb
+

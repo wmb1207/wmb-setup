@@ -1,0 +1,85 @@
+---
+# tasks file for emacs
+
+- name: install emacs dependencies
+  apt: name={{ item }} state=build-dep
+  with_items:
+    - emacs
+
+- name: install dependencies
+  apt: name={{ item }} state=present
+  with_items:
+    - cmake
+    - libtool-bin
+    - ripgrep
+    - gnutls-bin
+
+- name: get emacs sources code
+  git:
+    repo: https://github.com/emacs-mirror/emacs.git
+    dest: /tmp/emacs
+
+- name: autogen emacs
+  shell:
+    cmd: bash autogen.sh
+    chdir: /tmp/emacs
+
+- name: configure emacs
+  shell:
+    cmd: bash ./configure --without-x
+    chdir: /tmp/emacs
+
+- name: compile emacs
+  shell:
+    cmd: make
+    chdir: /tmp/emacs
+
+- name: install emacs
+  shell:
+    cmd: make install
+    chdir: /tmp/emacs
+
+- name: get doom emacs
+  git:
+    repo: https://github.com/hlissner/doom-emacs
+    dest: /home/{{ user }}/.emacs.d
+    depth: 1
+
+- name: set emacs configs ownership
+  shell:
+    cmd: chown -R {{ user }}:{{ user }} /home/{{ user }}/.emacs.d
+
+- name: install doom emacs
+  become: true
+  become_user: wmb
+  shell:
+    cmd: yes | bash doom install
+    chdir: /home/{{ user }}/.emacs.d/bin
+
+- name: set custom configs for doom emacs
+  become: true
+  become_user: wmb
+  copy:
+    src: ./configs/doom.config.el
+    dest: /home/{{ user }}/.doom.d/config.el
+
+- name: set custom packages for doom emacs
+  become: true
+  become_user: wmb
+  copy:
+    src: ./configs/doom.packages.el
+    dest: /home/{{ user }}/.doom.d/packages.el
+
+- name: set custom init for doom emacs
+  become: true
+  become_user: wmb
+  copy:
+    src: ./configs/doom.init.el
+    dest: /home/{{ user }}/.doom.d/init.el
+
+- name: sync doom configs
+  become: true
+  become_user: wmb
+  shell:
+    cmd: bash doom sync
+    chdir: /home/{{ user }}/.emacs.d/bin

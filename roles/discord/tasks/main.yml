@@ -1,0 +1,57 @@
+---
+# tasks file for discord
+#
+- name: install dependencies
+  apt: name={{ item }} state=present
+  with_items:
+    - curl
+
+- name: get discord package
+  command:
+    argv:
+      - curl
+      - -o
+      - /tmp/discord.deb
+      - https://dl.discordapp.net/apps/linux/0.0.16/discord-0.0.16.deb
+
+- name: decompress discord package
+  command:
+    argv:
+      - dpkg-deb
+      - -R
+      - /tmp/discord.deb
+      - /tmp/discord-deb
+
+- name: fix discord package dependencies for debian 11
+  command:
+    argv:
+      - sed
+      - -i
+      - 's/libappindicator1/libayatana-appindicator1/g'
+      - /tmp/discord-deb/DEBIAN/control
+
+- name: package discord
+  command:
+    argv:
+      - dpkg-deb
+      - -b
+      - /tmp/discord-deb
+      - /tmp/discord-fixed.deb
+
+- name: install discord
+  command:
+    chdir: /tmp
+    argv:
+      - apt
+      - install
+      - -y
+      - /tmp/discord-fixed.deb
+
+- name: clean discord packages
+  command:
+    argv:
+      - rm
+      - -rf
+      - /tmp/discord-deb
+      - /tmp/discord.deb
+      - /tmp/discord-fixed.deb

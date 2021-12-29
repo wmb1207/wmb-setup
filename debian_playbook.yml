@@ -1,0 +1,149 @@
+---
+
+- name: Install dependencies for a new debian machine
+  hosts: local
+  remote_user: "{{ user }}"
+  become: yes
+  vars:
+    zsh_antigen_bundles_extras:
+      - nvm
+      - joel-porquet/zsh-dircolors-solarized
+    zsh_user: "{{ user }}"
+    zsh_autosuggestions_bind_key: "^U"
+  roles:
+    - role: viasite-ansible.zsh
+    - role: nvim
+      user: "{{ user }}"
+    - role: docker
+    - role: slack
+    - role: vscode
+    - role: spotify
+    - role: emacs
+      user: "{{ user }}"
+    #- role: stephdewit.nvm
+    #  nvm_version: 'latest'
+    #  nvm_node_version: 'lts'
+
+  tasks:
+    - name: generate SSH key
+      user:
+        name: "{{ user }}"
+        generate_ssh_key: yes
+        ssh_key_type: rsa
+        ssh_key_bits: 4096
+        ssh_key_passphrase: ""
+        force: no
+      when: 'ssh_gen|bool'
+
+    - name: setup apt repositories
+      template:
+        src: ./templates/sources.list.j2
+        dest: /etc/apt/sources.list
+
+    - name: install amd radeon drivers
+      apt:
+        name: "{{ item }}"
+        state: latest
+      with_items:
+        - firmware-amd-graphics
+        - libgl1-mesa-dri
+        - libglx-mesa0
+        - mesa-vulkan-drivers
+        - xserver-xorg-video-all
+      when: 'amd_driver|bool'
+
+    - name: install amd radeon drivers
+      apt:
+        name: "{{ item }}"
+        state: latest
+      with_items:
+        - firmware-amd-graphics
+        - libgl1-mesa-dri
+        - libglx-mesa0
+        - mesa-vulkan-drivers
+        - xserver-xorg-video-all
+      when: 'amd_driver|bool'
+
+    - name: update full
+      apt:
+        upgrade: full
+        update_cache: true
+
+    - name: update all packages to their latest version
+      apt:
+        name: "*"
+        state: latest
+
+    - name: install dependencies
+      apt: name={{item}} state=present
+      with_items:
+        - htop
+        - vim
+        - git
+        - make
+        - tmux
+        - ca-certificates
+        - curl
+        - gnupg
+        - lsb-release
+        - jq
+        - httpie
+        - zsh
+        - terminator
+
+    - name: setup src user directory
+      command:
+        argv:
+          - mkdir
+          - -p
+          - /home/{{ user }}/src
+
+    - name: setup oh-my-zsh configs
+      template:
+        src: ./templates/zshrc.j2
+        dest: /home/{{ user }}/.zshrc
+
+    - name: setup tmux configs
+      copy:
+        src: ./configs/tmux.conf
+        dest: /home/{{ user }}/.tmux.conf
+        owner: "{{ user }}"
+        group: "{{ user }}"
+        mode: '0644'
+
+    - name: setup ssh dir
+      command: mkdir -p /home/{{ user }}/.ssh
+
+    - name: setup ssh configs
+      copy:
+        src: ./configs/ssh_config
+        dest: /home/{{ user }}/.ssh/config
+        owner: "{{ user }}"
+        group: "{{ user }}"
+        mode: '0644'
+      when: not 'ssh_gen|bool'
+
+    - name: setup ssh authorized keys
+      copy:
+        src: ./configs/ssh_authorized_keys
+        dest: /home/{{ user }}/.ssh/authorized_keys
+        owner: "{{ user }}"
+        group: "{{ user }}"
+        mode: '0644'
+
+    - name: setup private key
+      copy:
+        src: ~/.ssh/id_rsa
+        dest: /home/{{ user }}/.ssh
+        owner: "{{ user }}"
+        group: "{{ user }}"
+        mode: '0644'
+
+    - name: setup public key
+      copy:
+        src: ~/.ssh/id_rsa.pub
+        dest: /home/{{ user }}/.ssh
+        owner: "{{ user }}"
+        group: "{{ user }}"
+        mode: '0644'
+
