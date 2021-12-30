@@ -1,2 +1,12 @@
-[local]
+[desktop]
 192.168.88.251
+
+[servers]
+192.168.88.242  amd_driver="true"
+
+[desktop:vars]
+headless="false"
+
+[servers:vars]
+headless="true"
+amd_driver="false"

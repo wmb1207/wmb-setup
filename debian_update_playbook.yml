@@ -1,0 +1,31 @@
+---
+##################################################################################################
+# Ansible playbook built by                                                                      #
+#                                                                                                #
+# ██╗    ██╗███╗   ███╗██████╗                                                                   #
+# ██║    ██║████╗ ████║██╔══██╗                                                                  #
+# ██║ █╗ ██║██╔████╔██║██████╔╝                                                                  #
+# ██║███╗██║██║╚██╔╝██║██╔══██╗                                                                  #
+# ╚███╔███╔╝██║ ╚═╝ ██║██████╔╝                                                                  #
+#  ╚══╝╚══╝ ╚═╝     ╚═╝╚═════╝                                                                   #
+##################################################################################################
+
+- name: Update debian machines
+  hosts: all
+  remote_user: "{{ user }}"
+  become: yes
+
+  tasks:
+    - name: update machines
+      apt: update_cache=yes
+
+    - name: upgrade machines
+      apt: upgrade=dist
+
+    - name: Check if a reboot is required
+      register: file
+      stat: path=/var/run/reboot-required get_md5=no
+
+    - name: Reboot the server
+      command: /sbin/reboot
+      when: file.stat.exists == true

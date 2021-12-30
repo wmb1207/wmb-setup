@@ -1,7 +1,17 @@
 ---
+##################################################################################################
+# Ansible playbook built by                                                                      #
+#                                                                                                #
+# ██╗    ██╗███╗   ███╗██████╗                                                                   #
+# ██║    ██║████╗ ████║██╔══██╗                                                                  #
+# ██║ █╗ ██║██╔████╔██║██████╔╝                                                                  #
+# ██║███╗██║██║╚██╔╝██║██╔══██╗                                                                  #
+# ╚███╔███╔╝██║ ╚═╝ ██║██████╔╝                                                                  #
+#  ╚══╝╚══╝ ╚═╝     ╚═╝╚═════╝                                                                   #
+##################################################################################################
 
 - name: Install dependencies for a new debian machine
-  hosts: local
+  hosts: servers
   remote_user: "{{ user }}"
   become: yes
   vars:
@@ -16,24 +26,33 @@
       user: "{{ user }}"
     - role: docker
     - role: slack
+      when: headless == 'false'
     - role: vscode
+      when: headless == 'false'
     - role: spotify
+      when: headless == 'false'
+    - role: discord
+      when: headless == 'false'
     - role: emacs
       user: "{{ user }}"
-    #- role: stephdewit.nvm
-    #  nvm_version: 'latest'
-    #  nvm_node_version: 'lts'
+    - role: stephdewit.nvm
+      nvm_version: 'latest'
+      nvm_node_version: 'lts'
 
   tasks:
     - name: generate SSH key
-      user:
-        name: "{{ user }}"
-        generate_ssh_key: yes
-        ssh_key_type: rsa
-        ssh_key_bits: 4096
-        ssh_key_passphrase: ""
-        force: no
-      when: 'ssh_gen|bool'
+      openssh_keypair:
+        path: /home/{{ user }}/.ssh/id_rsa
+        owner: "{{ user }}"
+        group: "{{ user }}"
+      when: ssh_gen == 'true'
+
+    - name: Fix owner of the generated pub key
+      file:
+        path: /home/{{ user }}/.ssh/id_rsa.pub
+        owner: "{{ user }}"
+        group: "{{ user }}"
+      when: ssh_gen == 'true'
 
     - name: setup apt repositories
       template:
@@ -50,7 +69,7 @@
         - libglx-mesa0
         - mesa-vulkan-drivers
         - xserver-xorg-video-all
-      when: 'amd_driver|bool'
+      when: amd_driver == 'true'
 
     - name: install amd radeon drivers
       apt:
@@ -62,7 +81,7 @@
         - libglx-mesa0
         - mesa-vulkan-drivers
         - xserver-xorg-video-all
-      when: 'amd_driver|bool'
+      when: amd_driver == 'true'
 
     - name: update full
       apt:
@@ -121,7 +140,7 @@
         owner: "{{ user }}"
         group: "{{ user }}"
         mode: '0644'
-      when: not 'ssh_gen|bool'
+      when: ssh_gen == 'false'
 
     - name: setup ssh authorized keys
       copy:
