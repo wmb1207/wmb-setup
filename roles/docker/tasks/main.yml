@@ -2,14 +2,16 @@
 # tasks file for docker
 #
 - name: install dependencies
-  apt: name={{ item }} state=present
-  with_items:
-    - curl
+  apt:
+    name:
+      - curl
+      - gnupg
+    state: present
 
 - name: add docker gpg apt key
-  apt_key:
-   url: https://download.docker.com/linux/debian/gpg
-   state: present
+  shell: curl -sL https://download.docker.com/linux/debian/gpg | sudo apt-key add -
+  args:
+    warn: no
 
 - name: add docker repository
   apt_repository:
@@ -17,11 +19,14 @@
    state: present
 
 - name: install docker
-  apt: update_cache=yes name={{ item }} state=present
-  with_items:
-    - docker-ce
-    - docker-ce-cli
-    - containerd.io
+  apt:
+    update_cache: yes
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+    state: present
+
 
 - name: uname -s
   shell: uname -s
@@ -39,7 +44,7 @@
     - curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-{{ uname_s.stdout_lines | first }}-{{ uname_m.stdout_lines | first }}" -o /usr/local/bin/docker-compose
     - chmod +x /usr/local/bin/docker-compose
     - ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
-    
+
 - name: add user to docker group
   user: name={{ user }}
         groups=docker

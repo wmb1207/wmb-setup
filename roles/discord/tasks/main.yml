@@ -2,9 +2,9 @@
 # tasks file for discord
 #
 - name: install dependencies
-  apt: name={{ item }} state=present
-  with_items:
-    - curl
+  apt:
+    name: curl
+    state: present
 
 - name: get discord package
   command:

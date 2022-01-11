@@ -2,17 +2,19 @@
 # tasks file for emacs
 
 - name: install emacs dependencies
-  apt: name={{ item }} state=build-dep
-  with_items:
-    - emacs
+  apt:
+    name: emacs
+    state: present
 
 - name: install dependencies
-  apt: name={{ item }} state=present
-  with_items:
-    - cmake
-    - libtool-bin
-    - ripgrep
-    - gnutls-bin
+  apt:
+    name:
+      - cmake
+      - libtool-bin
+      - ripgrep
+      - gnutls-bin
+      - git
+    state: present
 
 - name: get emacs sources code
   git:

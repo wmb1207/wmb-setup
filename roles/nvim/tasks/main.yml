@@ -2,24 +2,32 @@
 # tasks file for nvim
 
 - name: install dependencies
-  apt: name={{ item }} state=present
-  with_items:
-    - git
-    - ninja-build
-    - gettext
-    - libtool
-    - libtool-bin 
-    - autoconf 
-    - automake
-    - cmake
-    - g++
-    - pkg-config
-    - unzip
-    - curl
-    - doxygen
+  apt:
+    name:
+      - git
+      - ninja-build
+      - gettext
+      - libtool
+      - libtool-bin
+      - autoconf
+      - automake
+      - cmake
+      - g++
+      - pkg-config
+      - unzip
+      - curl
+      - doxygen
+    state: present
 
-- name: prepare fs neovim
-  command: rm -rf /tmp/neovim && mkdir /tmp/neovim
+- name: ensure that neovim folder doesn´t exist
+  file:
+    path: /tmp/neovim
+    state: absent
+
+- name: Create a new neovim foler
+  file:
+    path: /tmp/neovim
+    state: directory
 
 - name: install neovim
   command: "{{ item }}"
@@ -36,21 +44,43 @@
       - https://gitlab.com/wenceslao1207/vim-configs
       - /home/{{ user }}/src/vim-configs
 
+- name: Create nvim config folder
+  file:
+    path: /home/{{ user }}/.config/nvim
+    state: directory
+
 - name: setup vim configs
-  command: "{{ item }}"
-  with_items:
-    - mkdir -p /home/{{ user }}/.config/nvim
-    - cp /home/{{ user }}/src/vim-configs/.nvimrc /home/{{ user }}
-    - cp /home/{{ user }}/src/vim-configs/vimrc /home/{{ user }}/.vimrc
-    - cp /home/{{ user }}/src/vim-configs/init.vim /home/{{ user }}/.config/nvim
-    - chown -R {{ user }}:{{ user }} /home/{{ user }}/
-    - rm -rf /home/{{ user }}/src/vim-configs
+  copy:
+    src: /home/{{ user }}/src/vim-configs/
+    dest: /home/{{ user }}
+
+- name: setup vimrcs
+  copy:
+    src: /home/{{ user }}/src/vim-configs/vimrc
+    dest: /home/{{ user }}/.vimrc
+
+- name: setup nvim
+  copy:
+    src: /home/{{ user }}/src/vim-configs/init.vim
+    dest: /home/{{ user }}/.config/nvim
+
+- name: set ownership of user's home
+  file:
+    path: /home/{{ user }}/
+    owner: "{{ user }}"
+    group: "{{ user }}"
+
+- name: Remove vim configs source
+  file:
+    path: /home/{{ user }}/src/vim-configs
+    state: absent
+
+- name: Create vim autoload folder
+  file:
+    path: /home/{{ user }}/.vim/autoload
+    state: directory
 
 - name: install vim plug
-  command:
-    argv:
-      - curl
-      - -fLo
-      - /home/{{ user }}/.vim/autoload/plug.vim
-      - --create-dirs
-      - https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+  get_url:
+    url: https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+    dest: /home/{{ user }}/.vim/autoload/plug.vim
