@@ -11,20 +11,23 @@
 ##################################################################################################
 
 - name: Install dependencies for a new debian machine
-  hosts: servers
+  hosts: all
   remote_user: "{{ user }}"
   become: yes
+
   vars:
     zsh_antigen_bundles_extras:
       - nvm
       - joel-porquet/zsh-dircolors-solarized
     zsh_user: "{{ user }}"
     zsh_autosuggestions_bind_key: "^U"
+    vagrant: false
+
   roles:
-    - role: viasite-ansible.zsh
+    - role: docker
+    - role: zsh
     - role: nvim
       user: "{{ user }}"
-    - role: docker
     - role: slack
       when: headless == 'false'
     - role: vscode
@@ -35,7 +38,8 @@
       when: headless == 'false'
     - role: emacs
       user: "{{ user }}"
-    - role: stephdewit.nvm
+      when: headless == 'false'
+    - role: nvm
       nvm_version: 'latest'
       nvm_node_version: 'lts'
 
@@ -61,29 +65,16 @@
 
     - name: install amd radeon drivers
       apt:
-        name: "{{ item }}"
+        name:
+          - firmware-amd-graphics
+          - libgl1-mesa-dri
+          - libglx-mesa0
+          - mesa-vulkan-drivers
+          - xserver-xorg-video-all
         state: latest
-      with_items:
-        - firmware-amd-graphics
-        - libgl1-mesa-dri
-        - libglx-mesa0
-        - mesa-vulkan-drivers
-        - xserver-xorg-video-all
       when: amd_driver == 'true'
 
-    - name: install amd radeon drivers
-      apt:
-        name: "{{ item }}"
-        state: latest
-      with_items:
-        - firmware-amd-graphics
-        - libgl1-mesa-dri
-        - libglx-mesa0
-        - mesa-vulkan-drivers
-        - xserver-xorg-video-all
-      when: amd_driver == 'true'
-
-    - name: update full
+    - name: refresh repositories
       apt:
         upgrade: full
         update_cache: true
@@ -94,21 +85,35 @@
         state: latest
 
     - name: install dependencies
-      apt: name={{item}} state=present
-      with_items:
-        - htop
-        - vim
-        - git
-        - make
-        - tmux
-        - ca-certificates
-        - curl
-        - gnupg
-        - lsb-release
-        - jq
-        - httpie
-        - zsh
-        - terminator
+      apt:
+        name:
+          - htop
+          - vim
+          - git
+          - make
+          - tmux
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+          - jq
+          - httpie
+          - zsh
+          - terminator
+        state: present
+        autoclean: yes
+
+    - name: Ensure NTP (for time synchronization)
+      apt:
+        name:
+          - ntp
+        state: present
+        autoclean: yes
+      when: vagrant == 'true'
+
+    - name: Ensure NTP is running
+      service: name=ntp state=started enabled=yes
+      when: vagrant == 'true'
 
     - name: setup src user directory
       command:
@@ -128,41 +133,29 @@
         dest: /home/{{ user }}/.tmux.conf
         owner: "{{ user }}"
         group: "{{ user }}"
-        mode: '0644'
+        mode: 0644
 
     - name: setup ssh dir
-      command: mkdir -p /home/{{ user }}/.ssh
+      file:
+        path: /home/{{ user }}/.ssh
+        mode: 0700
+        state: directory
 
     - name: setup ssh configs
       copy:
-        src: ~/.ssh/config
-        dest: /home/{{ user }}/.ssh/config
+        src: ~/.ssh/
+        dest: /home/{{ user }}/.ssh/
         owner: "{{ user }}"
         group: "{{ user }}"
-        mode: '0644'
-      when: ssh_gen == 'false'
+        mode: 0600
+      when: vagrant == 'false' and ssh_gen == 'false'
 
-    - name: setup ssh authorized keys
+    - name: copy ssh keys and config from host to guest
       copy:
-        src: ~/.ssh/authorized_keys
-        dest: /home/{{ user }}/.ssh/authorized_keys
-        owner: "{{ user }}"
-        group: "{{ user }}"
-        mode: '0644'
-
-    - name: setup private key
-      copy:
-        src: ~/.ssh/id_rsa
+        src: /vagrant/ssh/
         dest: /home/{{ user }}/.ssh
         owner: "{{ user }}"
         group: "{{ user }}"
-        mode: '0644'
-
-    - name: setup public key
-      copy:
-        src: ~/.ssh/id_rsa.pub
-        dest: /home/{{ user }}/.ssh
-        owner: "{{ user }}"
-        group: "{{ user }}"
-        mode: '0644'
+        mode: 0600
+      when: vagrant == 'true' and ssh_gen == 'false'
 

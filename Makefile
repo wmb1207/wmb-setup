@@ -1,7 +1,7 @@
 ##################################################################################################
 # Ansible makefile built by                                                                      #
 #                                                                                                #
-# ██╗    ██╗███╗   ███╗██████╗                                                                   #	
+# ██╗    ██╗███╗   ███╗██████╗                                                                   #
 # ██║    ██║████╗ ████║██╔══██╗                                                                  #
 # ██║ █╗ ██║██╔████╔██║██████╔╝                                                                  #
 # ██║███╗██║██║╚██╔╝██║██╔══██╗                                                                  #
@@ -48,6 +48,9 @@ add-host:
 
 docs:
 	@sed -n '/^$(PATTERN)/,/^$(PATTERN)/p' ./Makefile
+
+install-requirements:
+	@ansible-galaxy install -r requirements.yml
 
 add-role:
 	@bash -c "pushd roles && ansible-galaxy role init $(filter-out $@,$(MAKECMDGOALS))"
